@@ -1,0 +1,71 @@
+name: main
+on:
+  push:
+    branches:
+      - main
+jobs:
+  run-test-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      # - run: pip install -r requirements.txt
+      # - run: pytest
+  #     # - run: gunicorn --bind 0.0.0.0:32000 app:app
+
+  build-and-push-docker-image:
+    name: Build Docker image and push to repositories
+    runs-on: ubuntu-latest
+    needs: ["run-test-code"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Configure Docker daemon
+        run: |
+          echo '{ "insecure-registries": ["119.197.27.55:5000"] }' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+      - name: Login to Docker registry
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} 119.197.27.55:5000
+      - name: Build and Push Docker image
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: |
+            119.197.27.55:5000/flask:${{ github.sha }}
+            119.197.27.55:5000/flask:latest
+      - name: Save image digest
+        run: echo "${{ steps.docker_build.outputs.digest }}" > image-digest.txt
+      - name: Upload image digest as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: image-digest
+          path: image-digest.txt
+
+  update-manifest:
+    name: Update Kubernetes manifest
+    runs-on: ubuntu-latest
+    needs: ["build-and-push-docker-image"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Download image digest artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: image-digest
+      - name: Update image in Kubernetes manifest
+        run: |
+          IMAGE_DIGEST=$(cat image-digest.txt)
+          sed -i "s|image: 119.197.27.55:5000/flask@sha256:[a-zA-Z0-9]*|image: 119.197.27.55:5000/flask@$IMAGE_DIGEST|g" deploy/deploy.yml
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "mastgm0817@gmail.com"
+          git config --local user.name "mastgm0817"
+          git add deploy/deploy.yml
+          git commit -m "Update image in Kubernetes manifest"
+          git push https://${{ secrets.GH_TOKEN }}@github.com/mastgm0817/final_ai.git HEAD:main
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
