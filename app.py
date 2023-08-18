@@ -25,7 +25,7 @@ movie_df = pd.read_csv('./영화관.csv', encoding='utf-8')
 
 @app.route("/")
 def hello():
-    return "flask test page"
+    return "flask test page!!"
 
 @app.route('/api/v2/predict', methods=['POST'])
 def predict():
