@@ -69,6 +69,6 @@ jobs:
           git add image-digest.txt
           git add deploy/deploy.yml
           git commit -m "Update image in Kubernetes manifest1"
-          git push https://${{ secrets.GH_TOKEN }}@github.com/mastgm0817/final_ai.git HEAD:main
+          git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/mastgm0817/final_ai.git HEAD:main
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
