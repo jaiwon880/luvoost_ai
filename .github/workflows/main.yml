@@ -62,8 +62,10 @@ jobs:
           sed -i "s|image: 119.197.27.55:5000/flask@sha256:[a-zA-Z0-9]*|image: 119.197.27.55:5000/flask@$IMAGE_DIGEST|g" deploy/deploy.yml
       - name: Commit and push changes
         run: |
-          git config --local user.email "rhquddus@naver.com"
+          git config --local user.email "mastgm0817@gmail.com"
           git config --local user.name "mastgm0817"
+          git remote -v
+          git remote set-url https://github.com/mastgm0817/final_ai.git
           git add image-digest.txt
           git add deploy/deploy.yml
           git commit -m "Update image in Kubernetes manifest1"
