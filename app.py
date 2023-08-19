@@ -113,7 +113,7 @@ def predict():
     return Response(response=json.dumps(result), status=200, mimetype="application/json")
 
 # 경로 /predict/random 에서 GET 요청이 들어왔을 때 처리
-@app.route('api/v2/predict/optimal', methods=['GET', 'POST'])
+@app.route('/api/v2/predict/optimal', methods=['GET', 'POST'])
 def predict_optimal():
     # 1. 클라이언트로부터 데이터 추출
     data = request.json  # 데이터가 리스트의 첫 번째 요소로 전달됨
