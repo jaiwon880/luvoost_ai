@@ -2,7 +2,7 @@ name: main
 on:
   push:
     branches:
-      - dd
+      - main
 jobs:
   run-test-code:
     runs-on: ubuntu-latest
