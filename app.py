@@ -25,7 +25,7 @@ movie_df = pd.read_csv('./영화관.csv', encoding='utf-8')
 processed_data = []  # 리스트로 초기화
 processed_data2 = []  # 리스트로 초기화
 
-@app.route("/")
+@app.route("/api/v2")
 def hello():
     return "flask test!"
 

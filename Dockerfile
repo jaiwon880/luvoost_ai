@@ -18,7 +18,7 @@ COPY certs/fullchain.pem /etc/letsencrypt/live/luvoost.co.kr/fullchain.pem
 COPY certs/privkey.pem /etc/letsencrypt/live/luvoost.co.kr/privkey.pem
 
 # 7777 포트 열기
-EXPOSE 32000
+EXPOSE 7777
 
 # 애플리케이션 실행 (SSL 옵션 추가)
 CMD gunicorn --certfile=/etc/letsencrypt/live/luvoost.co.kr/fullchain.pem --keyfile=/etc/letsencrypt/live/luvoost.co.kr/privkey.pem --bind 0.0.0.0:32000 app:app
