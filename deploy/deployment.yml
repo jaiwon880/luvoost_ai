@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: flask-pod
-          image: 119.197.27.55:5000/flask@sha256:56a3ab12fe5b6ab6d155c0cc5cfefad1147c9540
+          image: 119.197.27.55:5000/flask@sha256:cb6cfd44acb4c758a5a5433e4a1576ed714160000ccc906e166b3bde5e864c0c
           ports:
             - containerPort: 7777
 ---
