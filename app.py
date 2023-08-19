@@ -8,13 +8,11 @@ import json
 from flask import Response
 # from reviewline import preprocess_review_data
 import numpy as np
-from flask_sslify import SSLify
 from recommend import recommend_restaurants, recommend_optimal, recommend_optimal_cafe, recommend_optimal_movie
 from recommend import recommend_cafe, recommend_optimal_park, recommend_theme
 
 
 app = Flask(__name__)
-sslify = SSLify(app)
 
 # 모델 로드
 model = tf.keras.models.load_model('halp.h5')
@@ -22,6 +20,10 @@ model = tf.keras.models.load_model('halp.h5')
 df = pd.read_csv('./레스토랑.csv', encoding='utf-8')
 cafe_df = pd.read_csv('./카페.csv', encoding='utf-8')
 movie_df = pd.read_csv('./영화관.csv', encoding='utf-8')
+
+# 이미 처리한 데이터를 기록할 세트
+processed_data = []  # 리스트로 초기화
+processed_data2 = []  # 리스트로 초기화
 
 @app.route("/")
 def hello():
@@ -65,7 +67,7 @@ def predict():
         cafe_results_json = cafe_results.to_json(orient='records')
 
         #테마
-        theme_results = recommend_theme((cafe_results['latitude'].iloc[0], cafe_results['longitude'].iloc[0]), n_recommendations=1)
+        theme_results = recommend_theme((cafe_results['latitude'].iloc[0], cafe_results['longitude'].iloc[0]), n_recommendations=3)
         theme_results_json = theme_results.to_json(orient='records')
 
         # 영화관 추천 함수 호출
@@ -73,24 +75,33 @@ def predict():
         movie_results_json = movie_results.to_json(orient='records')
 
         # 영화관 좌표를 사용하여 공원 추천 함수 호출
-        park_results = recommend_optimal_park((movie_results['latitude'].iloc[0], movie_results['longitude'].iloc[0]), n_recommendations=1)
+        park_results = recommend_optimal_park((movie_results['latitude'].iloc[0], movie_results['longitude'].iloc[0]), n_recommendations=3)
         park_results_json = park_results.to_json(orient='records')
+
+        # JSON 형태의 문자열을 JSON 객체 리스트로 변환
+        theme_results = json.loads(theme_results_json)
+        park_results = json.loads(park_results_json)
+
+            # 첫 번째 값을 출력
+        for theme in theme_results:
+            if theme not in processed_data:
+                processed_data.append(theme)
+                break
+
+                    # 첫 번째 값을 출력
+        for park in park_results:
+            if park not in processed_data2:
+                processed_data2.append(park)
+                break       
 
         # 추천 결과를 구성하고 리스트에 추가
         recommendation = {
             'latitude': str(latitude),
             'longitude': str(longitude),
-            'restaurant_prediction': [location] + json.loads(cafe_results_json) + json.loads(theme_results_json)
-              + json.loads(movie_results_json) + json.loads(park_results_json)
+            'restaurant_prediction': [location] + json.loads(cafe_results_json) + [theme]
+              + json.loads(movie_results_json) + [park]
     
-        }
-        # print(cafe_results['latitude'])
-        # print(cafe_results['longitude'])
-        # print(theme_results['latitude'])
-        # print(theme_results['longitude'])
-        # print(movie_results['latitude'])
-        # print(movie_results['longitude'])
-        # print("=============================")
+        }     
 
         recommendations.append(recommendation)
 

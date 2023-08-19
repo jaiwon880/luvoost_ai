@@ -83,21 +83,24 @@ def recommend_cafe(user_preferences, category,user_location, n_recommendations=5
     return recommendations
 
 def recommend_theme(user_location, n_recommendations=5):
+
+    # 친절도가 2.3 초과인 데이터만 필터링
+    filtered_theme_df = theme_df[theme_df['친절도'] > 2.3] 
+
     # 사용자 위치와 각 음식점 사이의 거리 계산
     distances = np.array([
         calculate_distance(user_location[0], user_location[1], lat, lon)
-        for lat, lon in zip(theme_df['latitude'], theme_df['longitude'])
+        for lat, lon in zip(filtered_theme_df['latitude'], filtered_theme_df['longitude'])
     ])
 
     # 거리를 역수로 변환하여 가까운 곳에 더 높은 값을 주기
     distance_scores = 1 / (1 + distances)
 
     # 유사도와 거리 점수를 조합 (예: 유사도 70%, 거리 점수 30%)
-    combined_scores = 0.4 * theme_df['재미'] + 0.4 * theme_df['분위기'] + 0.2 * distance_scores
+    combined_scores = 1 * distance_scores
 
-    # 유사도와 거리 점수를 조합한 점수로 정렬
-    recommendations = theme_df.assign(score=combined_scores).sort_values(by='score', ascending=False)
-
+    # 유사도와 거리 점수를 조합한 점수로 정렬하되, '분위기' 컬럼 값이 높은 순으로도 정렬
+    recommendations = filtered_theme_df.assign(score=combined_scores).sort_values(by=['score', '분위기'], ascending=[False, False])
     # 사용자와 가장 유사한 n개의 레스토랑 반환 전, 원치 않는 컬럼 제거
     recommendations = recommendations.drop(columns=['review', 'review_cleaned', 'keyword_sentiment', 'score']).head(
         n_recommendations)
