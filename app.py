@@ -27,7 +27,7 @@ processed_data2 = []  # 리스트로 초기화
 
 @app.route("/")
 def hello():
-    return "flask test!!!"
+    return "flask test!"
 
 @app.route('/api/v2/predict', methods=['POST'])
 def predict():
