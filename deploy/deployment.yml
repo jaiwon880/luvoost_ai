@@ -16,7 +16,7 @@ spec:
         kubernetes.io/hostname: flask # 원하는 노드 이름 지정
       containers:
         - name: flask-pod
-          image: 119.197.27.55:5000/flask@sha256:121dfff7f4dc8c19a7f1f4ac1d9ee9a0408bfa87cd14cd55dd9dd499f7078664
+          image: 119.197.27.55:5000/flask@sha256:7471019a92f5c210ff6e204c48eeb3143ec5dedf32d912e5a4ee4dce3fe59f8d
           ports:
             - containerPort: 7777
 ---
