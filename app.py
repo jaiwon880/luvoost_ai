@@ -99,22 +99,19 @@ def predict():
 
         # 추천 결과를 구성하고 리스트에 추가
         recommendation = {
-            'latitude': str(latitude),
-            'longitude': str(longitude),
             'restaurant_prediction': [location] + json.loads(cafe_results_json) + [theme]
               + json.loads(movie_results_json) + [park]
-    
         }     
         recommendations.append(recommendation)
 
     # 4. 최종 결과 JSON 구성
-    result = {
-        'recommendations': recommendations
-    }
+    # result = {
+    #     'recommendations': recommendations
+    # }
     # 5. 결과 응답 반환
-    return Response(response=json.dumps(result), status=200, mimetype="application/json")
+    return Response(response=json.dumps(recommendations), status=200, mimetype="application/json")
 
-@app.route('/api/v1/predict/optimal', methods=['GET', 'POST'])
+@app.route('/api/v1/optimal', methods=['GET', 'POST'])
 def predict_optimal():
     # 1. 클라이언트로부터 데이터 추출
     data = request.json  # 데이터가 리스트의 첫 번째 요소로 전달됨
@@ -153,14 +150,15 @@ def predict_optimal():
     
     return jsonify(result)
 
-@app.route('/api/v1/predict/random', methods=['GET', 'POST'])
+@app.route('/api/v1/random', methods=['GET', 'POST'])
 def predict_random():
-    selected_region = request.json.get('selected_region')  # 클라이언트가 선택한 지역 받아오기
+    data = request.json
+    selected_region = str(data['selected_region'])  # 클라이언트가 선택한 지역 받아오기
 
     num_restaurant_recommendations = 2
     recommended_restaurants = recommend_random_places(df, 
         num_restaurant_recommendations, 
-        '친절도', 2.4,  # 친절도 2.4 이상
+        '맛', 2.8,  # 친절도 2.4 이상
         '분위기', 2.5,  # 분위기 2.5 이상
         selected_region
         )
