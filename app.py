@@ -30,7 +30,7 @@ processed_data2 = []  # 리스트로 초기화
 
 @app.route("/")
 def hello():
-    return "안냐세여"
+    return "flask test page!!"
 
 @app.route('/api/v1/predict', methods=['POST'])
 def predict():
@@ -105,7 +105,6 @@ def predict():
               + json.loads(movie_results_json) + [park]
     
         }     
-
         recommendations.append(recommendation)
 
     # 4. 최종 결과 JSON 구성
@@ -115,7 +114,6 @@ def predict():
     # 5. 결과 응답 반환
     return Response(response=json.dumps(result), status=200, mimetype="application/json")
 
-# 경로 /predict/random 에서 GET 요청이 들어왔을 때 처리
 @app.route('/api/v1/predict/optimal', methods=['GET', 'POST'])
 def predict_optimal():
     # 1. 클라이언트로부터 데이터 추출
@@ -213,7 +211,6 @@ def predict_random():
     }
 
     return jsonify(recommendation_result)
-
 
 if __name__ == '__main__':
     app.run(debug=False)
