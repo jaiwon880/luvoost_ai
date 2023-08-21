@@ -7,9 +7,10 @@ import pandas as pd
 import json
 from flask import Response
 # from reviewline import preprocess_review_data
+import random
 import numpy as np
 from recommend import recommend_restaurants, recommend_optimal, recommend_optimal_cafe, recommend_optimal_movie
-from recommend import recommend_cafe, recommend_optimal_park, recommend_theme
+from recommend import recommend_cafe, recommend_optimal_park, recommend_theme, recommend_random_places
 
 
 app = Flask(__name__)
@@ -20,6 +21,8 @@ model = tf.keras.models.load_model('halp.h5')
 df = pd.read_csv('./레스토랑.csv', encoding='utf-8')
 cafe_df = pd.read_csv('./카페.csv', encoding='utf-8')
 movie_df = pd.read_csv('./영화관.csv', encoding='utf-8')
+park_df = pd.read_csv('./산책.csv', encoding='utf-8')
+theme_df = pd.read_csv('./테마.csv', encoding='utf-8')
 
 # 이미 처리한 데이터를 기록할 세트
 processed_data = []  # 리스트로 초기화
@@ -113,7 +116,7 @@ def predict():
     return Response(response=json.dumps(result), status=200, mimetype="application/json")
 
 # 경로 /predict/random 에서 GET 요청이 들어왔을 때 처리
-@app.route('/predict/optimal', methods=['GET', 'POST'])
+@app.route('/api/v1/predict/optimal', methods=['GET', 'POST'])
 def predict_optimal():
     # 1. 클라이언트로부터 데이터 추출
     data = request.json  # 데이터가 리스트의 첫 번째 요소로 전달됨
@@ -151,8 +154,66 @@ def predict_optimal():
     }
     
     return jsonify(result)
-# @app.route('/predict/random', methods=['GET'])
-# def predict_random():
+
+@app.route('/api/v1/predict/random', methods=['GET', 'POST'])
+def predict_random():
+    selected_region = request.json.get('selected_region')  # 클라이언트가 선택한 지역 받아오기
+
+    num_restaurant_recommendations = 2
+    recommended_restaurants = recommend_random_places(df, 
+        num_restaurant_recommendations, 
+        '친절도', 2.4,  # 친절도 2.4 이상
+        '분위기', 2.5,  # 분위기 2.5 이상
+        selected_region
+        )
+    restaurants_results_json = recommended_restaurants.to_json(orient='records')
+
+    # 랜덤으로 카페 두 개 추천 (분위기 2.5 이상, 선택한 지역 포함)
+    num_cafe_recommendations = 2
+    recommended_cafes = recommend_random_places(cafe_df, 
+        num_cafe_recommendations, 
+        '친절도', 2.4,  # 친절도 2.4 이상
+        '분위기', 2.5,  # 분위기 2.5 이상
+        selected_region
+        )
+    cafes_results_json = recommended_cafes.to_json(orient='records')
+
+    #영화관 추천
+    movie_location = json.loads(cafes_results_json)[0]
+    movie_latitude = movie_location['latitude']
+    movie_longitude = movie_location['longitude']
+
+    movie_results = recommend_optimal_movie((movie_latitude, movie_longitude), n_recommendations=1)
+    movie_results_json = movie_results.to_json(orient='records')
+
+    # 랜덤으로 테마 두 개 추천 (분위기 2.5 이상, 선택한 지역 포함)
+    num_theme_recommendations = 2
+    recommended_theme = recommend_random_places(theme_df, 
+        num_theme_recommendations, 
+        '재미', 2.3,  # 친절도 2.4 이상
+        '추천', 2.6,  # 분위기 2.5 이상
+        selected_region
+        )
+    theme_results_json = recommended_theme.to_json(orient='records')
+
+    
+    #산책로 추천
+    park_location = json.loads(theme_results_json)[0]
+    park_latitude = park_location['latitude']
+    park_longitude = park_location['longitude']
+
+    # n_recommendations에 원하는 값(2)을 넣으세요
+    park_results = recommend_optimal_park((park_latitude, park_longitude), n_recommendations=2)
+    park_results_json = park_results.to_json(orient='records')
+
+    # 추천 결과
+    recommendation_result = {
+        "랜덤 코스 추천": json.loads(restaurants_results_json) + json.loads(cafes_results_json) + json.loads(movie_results_json)
+          + json.loads(theme_results_json) + json.loads(park_results_json)
+    }
+
+    return jsonify(recommendation_result)
+
 
 if __name__ == '__main__':
     app.run(debug=False)
