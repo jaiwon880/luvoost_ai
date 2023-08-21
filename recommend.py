@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import json
 from flask import Response
+import random
 
 
 
@@ -107,6 +108,26 @@ def recommend_theme(user_location, n_recommendations=5):
 
     return recommendations
 
+# 랜덤 추천 함수
+def recommend_random_places(df, n_recommendations, sentiment_column1, sentiment_threshold1, sentiment_column2, sentiment_threshold2, selected_region):
+    valid_places = df[
+        (df[sentiment_column1] >= sentiment_threshold1) & 
+        (df[sentiment_column2] >= sentiment_threshold2) & 
+        (df['소재지전체주소'].str.contains(selected_region))
+    ]
+    
+    if len(valid_places) < n_recommendations:
+        return "충족하는 곳이 없습니다."
+    
+    recommended_indices = random.sample(range(len(valid_places)), n_recommendations)
+    recommended_places = valid_places.iloc[recommended_indices]
+
+    # 사용자와 가장 유사한 n개의 레스토랑 반환 전, 원치 않는 컬럼 제거
+    recommendations = recommended_places.drop(columns=['review', 'review_cleaned', 'keyword_sentiment']).head(n_recommendations)
+    return recommendations
+
+
+# 좌표기준
 def recommend_optimal(user_location, n_recommendations=5):
     # 사용자 위치와 각 음식점 사이의 거리 계산 (하버사인 공식 사용)
     distances = []
@@ -178,4 +199,5 @@ def recommend_optimal_park(user_location, n_recommendations=5):
     recommendations = recommendations.drop(columns=['score']).head(n_recommendations)
 
     return recommendations
+
 
