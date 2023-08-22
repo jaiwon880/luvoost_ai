@@ -42,6 +42,7 @@ def predict():
     latitude = float(data['user_latitude'])
     longitude = float(data['user_longitude'])
     preferred_food = data['food']
+    budget = int(data['budget']) if 'budget' in data else None  # 예산이 설정되지 않았을 경우 None
 
     # 2. 사용자의 음식점 선호도 추출
     user_preferences = {
@@ -57,11 +58,16 @@ def predict():
     recommendations = []
 
     # 음식점 추천 결과를 받아서 세부 추천 수행
-    results = recommend_restaurants(user_preferences, preferred_food, (latitude, longitude), n_recommendations=3)
+    results = recommend_restaurants(user_preferences, preferred_food, (latitude, longitude), budget, n_recommendations=3)
     results_json = results.to_json(orient='records')
     results_data = json.loads(results_json)
 
     for location in results_data:
+        total_expected_cost = 0  # 예상 소비 금액을 저장할 변수 초기화
+        if budget:  # budget이 None이 아닐 경우만 차감
+            total_expected_cost += location['mean_price']
+            budget -= location['mean_price'] # 예산 비용 차감
+
         cafe_latitude = location['latitude']
         cafe_longitude = location['longitude']
 
@@ -69,13 +75,25 @@ def predict():
         cafe_results = recommend_cafe(user_preferences, "카페", (cafe_latitude, cafe_longitude), n_recommendations=1)
         cafe_results_json = cafe_results.to_json(orient='records')
 
+        if budget:  # budget이 None이 아닐 경우만 차감
+            total_expected_cost += cafe_results['mean_price'].iloc[0]
+            budget -= cafe_results['mean_price'].iloc[0]
+
         #테마
         theme_results = recommend_theme((cafe_results['latitude'].iloc[0], cafe_results['longitude'].iloc[0]), n_recommendations=3)
         theme_results_json = theme_results.to_json(orient='records')
 
+        if budget:  # budget이 None이 아닐 경우만 차감
+            total_expected_cost += float(theme_results['mean_price'].iloc[0])
+            budget -= float(theme_results['mean_price'].iloc[0])
+
         # 영화관 추천 함수 호출
         movie_results = recommend_optimal_movie((theme_results['latitude'].iloc[0], theme_results['longitude'].iloc[0]), n_recommendations=1)
         movie_results_json = movie_results.to_json(orient='records')
+
+        if budget:  # budget이 None이 아닐 경우만 차감
+            total_expected_cost += movie_results['mean_price'].iloc[0]
+            budget -= movie_results['mean_price'].iloc[0]
 
         # 영화관 좌표를 사용하여 공원 추천 함수 호출
         park_results = recommend_optimal_park((movie_results['latitude'].iloc[0], movie_results['longitude'].iloc[0]), n_recommendations=3)
@@ -100,7 +118,8 @@ def predict():
         # 추천 결과를 구성하고 리스트에 추가
         recommendation = {
             'restaurant_prediction': [location] + json.loads(cafe_results_json) + [theme]
-              + json.loads(movie_results_json) + [park]
+              + json.loads(movie_results_json) + [park],
+            'expected_total_cost': total_expected_cost  # 예상 소비 금액 추가
         }     
         recommendations.append(recommendation)
 
@@ -156,8 +175,8 @@ def predict_random():
     selected_region = str(data['selected_region'])  # 클라이언트가 선택한 지역 받아오기
 
     num_restaurant_recommendations = 2
-    recommended_restaurants = recommend_random_places(df, 
-        num_restaurant_recommendations, 
+    recommended_restaurants = recommend_random_places(df,
+        num_restaurant_recommendations,
         '맛', 2.8,  # 친절도 2.4 이상
         '분위기', 2.5,  # 분위기 2.5 이상
         selected_region
@@ -166,8 +185,8 @@ def predict_random():
 
     # 랜덤으로 카페 두 개 추천 (분위기 2.5 이상, 선택한 지역 포함)
     num_cafe_recommendations = 2
-    recommended_cafes = recommend_random_places(cafe_df, 
-        num_cafe_recommendations, 
+    recommended_cafes = recommend_random_places(cafe_df,
+        num_cafe_recommendations,
         '친절도', 2.4,  # 친절도 2.4 이상
         '분위기', 2.5,  # 분위기 2.5 이상
         selected_region
@@ -184,15 +203,15 @@ def predict_random():
 
     # 랜덤으로 테마 두 개 추천 (분위기 2.5 이상, 선택한 지역 포함)
     num_theme_recommendations = 2
-    recommended_theme = recommend_random_places(theme_df, 
-        num_theme_recommendations, 
+    recommended_theme = recommend_random_places(theme_df,
+        num_theme_recommendations,
         '재미', 2.3,  # 친절도 2.4 이상
         '추천', 2.6,  # 분위기 2.5 이상
         selected_region
         )
     theme_results_json = recommended_theme.to_json(orient='records')
 
-    
+
     #산책로 추천
     park_location = json.loads(theme_results_json)[0]
     park_latitude = park_location['latitude']
