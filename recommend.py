@@ -115,21 +115,32 @@ def recommend_theme(user_location, n_recommendations=5):
 
 # 랜덤 추천 함수
 def recommend_random_places(df, n_recommendations, sentiment_column1, sentiment_threshold1,
-                            sentiment_column2, sentiment_threshold2, selected_region, budget=None):
+                            sentiment_column2, sentiment_threshold2, selected_region, budget):
+    # '정보 없음' 값을 NaN으로 대체 및 타입 변환
+    if 'max_price' in df.columns:
+        df['max_price'] = df['max_price'].replace('정보 없음', np.nan)
+        df['max_price'] = pd.to_numeric(df['max_price'], errors='coerce')
+        
+    if 'mean_price' in df.columns:
+        df['mean_price'] = df['mean_price'].replace('정보 없음', np.nan)
+        df['mean_price'] = pd.to_numeric(df['mean_price'], errors='coerce')
+
     base_conditions = [
         (df[sentiment_column1] >= sentiment_threshold1),
         (df[sentiment_column2] >= sentiment_threshold2),
         (df['소재지전체주소'].str.contains(selected_region))
     ]
-
-    # max_price 컬럼이 존재하는 경우
-    if 'max_price' in df.columns and budget:
-        price_conditions = base_conditions + [(df['max_price'] <= budget)]
-    # max_price 컬럼이 없고 mean_price 컬럼이 존재하는 경우
-    elif 'mean_price' in df.columns and budget:
-        price_conditions = base_conditions + [(df['mean_price'] <= budget)]
-    # 두 컬럼 모두 없는 경우
-    else:
+    if budget:
+        # max_price 컬럼이 존재하는 경우
+        if 'max_price' in df.columns and budget:
+            price_conditions = base_conditions + [(df['max_price'] <= budget)]
+        # max_price 컬럼이 없고 mean_price 컬럼이 존재하는 경우
+        elif 'mean_price' in df.columns and budget:
+            price_conditions = base_conditions + [(df['mean_price'] <= budget)]
+        # 두 컬럼 모두 없는 경우
+        else:
+            price_conditions = base_conditions
+    else:  # 예산이 설정되지 않았을 때
         price_conditions = base_conditions
 
     valid_places = df[np.all(price_conditions, axis=0)]
@@ -144,7 +155,6 @@ def recommend_random_places(df, n_recommendations, sentiment_column1, sentiment_
     recommendations = recommended_places.drop(columns=['review', 'review_cleaned', 'keyword_sentiment', 'menu_prices']).head(
         n_recommendations)
     return recommendations
-
 
 # 좌표기준
 def recommend_optimal(user_location, n_recommendations=5):

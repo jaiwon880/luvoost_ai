@@ -172,24 +172,37 @@ def predict_optimal():
 def predict_random():
     data = request.json
     selected_region = str(data['selected_region'])  # 클라이언트가 선택한 지역 받아오기
+    budget = data.get('budget', None)  # 클라이언트가 보낸 budget 값을 받아오기. 만약 budget 값이 없으면 None으로 설정합니다.
 
+    # 예산이 설정되었을 때
+    if budget:
+        restaurant_budget = budget * 0.4
+        theme_budget = budget * 0.4
+        cafe_budget = budget * 0.2
+    # 예산이 설정되지 않았을 때
+    else:
+        restaurant_budget = None
+        theme_budget = None
+        cafe_budget = None
+    
+    # 음식점 추천 (맛 2.8 이상, 분위기 2.5 이상, 선택한 지역 포함)
     num_restaurant_recommendations = 2
     recommended_restaurants = recommend_random_places(df,
-        num_restaurant_recommendations,
-        '맛', 2.8,  # 친절도 2.4 이상
-        '분위기', 2.5,  # 분위기 2.5 이상
-        selected_region
-        )
+                                                      num_restaurant_recommendations,
+                                                      '맛', 2.8,
+                                                      '분위기', 2.5,
+                                                      selected_region,
+                                                      restaurant_budget)
     restaurants_results_json = recommended_restaurants.to_json(orient='records')
 
-    # 랜덤으로 카페 두 개 추천 (분위기 2.5 이상, 선택한 지역 포함)
+    # 랜덤으로 카페 두 개 추천 (친절도 2.4 이상, 분위기 2.5 이상, 선택한 지역 포함)
     num_cafe_recommendations = 2
     recommended_cafes = recommend_random_places(cafe_df,
-        num_cafe_recommendations,
-        '친절도', 2.4,  # 친절도 2.4 이상
-        '분위기', 2.5,  # 분위기 2.5 이상
-        selected_region
-        )
+                                                num_cafe_recommendations,
+                                                '친절도', 2.4,
+                                                '분위기', 2.5,
+                                                selected_region,
+                                                cafe_budget)
     cafes_results_json = recommended_cafes.to_json(orient='records')
 
     #영화관 추천
@@ -200,14 +213,14 @@ def predict_random():
     movie_results = recommend_optimal_movie((movie_latitude, movie_longitude), n_recommendations=1)
     movie_results_json = movie_results.to_json(orient='records')
 
-    # 랜덤으로 테마 두 개 추천 (분위기 2.5 이상, 선택한 지역 포함)
+    # 랜덤으로 테마 두 개 추천 (재미 2.3 이상, 추천 2.6 이상, 선택한 지역 포함)
     num_theme_recommendations = 2
     recommended_theme = recommend_random_places(theme_df,
-        num_theme_recommendations,
-        '재미', 2.3,  # 친절도 2.4 이상
-        '추천', 2.6,  # 분위기 2.5 이상
-        selected_region
-        )
+                                                num_theme_recommendations,
+                                                '재미', 2.3,
+                                                '추천', 2.6,
+                                                selected_region,
+                                                theme_budget)
     theme_results_json = recommended_theme.to_json(orient='records')
 
 
