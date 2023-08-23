@@ -16,6 +16,14 @@ park_df = pd.read_csv('./산책.csv', encoding='utf-8')
 theme_df = pd.read_csv('./테마.csv', encoding='utf-8')
 
 def recommend_restaurants(user_preferences, category, user_location, budget, n_recommendations=5):
+    # '정보 없음' 값을 NaN으로 대체 및 타입 변환
+    if 'max_price' in df.columns:
+        df['max_price'] = df['max_price'].replace('정보 없음', np.nan)
+        df['max_price'] = pd.to_numeric(df['max_price'], errors='coerce')
+
+    if 'mean_price' in df.columns:
+        df['mean_price'] = df['mean_price'].replace('정보 없음', np.nan)
+        df['mean_price'] = pd.to_numeric(df['mean_price'], errors='coerce')
     # 사용자 선호도를 데이터 프레임에 추가
     user_df = pd.DataFrame(user_preferences, index=['user'])
 
@@ -52,19 +60,24 @@ def recommend_restaurants(user_preferences, category, user_location, budget, n_r
     return recommendations
 
 def recommend_cafe(user_preferences, category,user_location, budget, n_recommendations=5):
+    # '정보 없음' 값을 NaN으로 대체 및 타입 변환
+    if 'mean_price' in cafe_df.columns:
+        cafe_df['mean_price'] = cafe_df['mean_price'].replace('정보 없음', np.nan)
+        cafe_df['mean_price'] = pd.to_numeric(cafe_df['mean_price'], errors='coerce')
+
     # 사용자 선호도를 데이터 프레임에 추가
     user_df = pd.DataFrame(user_preferences, index=['user'])
 
     # 사용자가 선택한 카테고리의 레스토랑만 필터링
     if budget:  # 예산이 설정되었을 때
-        filtered_data = df[(df['업태구분명'] == category) & (df['max_price'] <= budget)]
+        filtered_data = cafe_df[(cafe_df['업태구분명'] == category) & (cafe_df['mean_price'] <= budget)]
     else:  # 예산이 설정되지 않았을 때
-        filtered_data = df[df['업태구분명'] == category]
+        filtered_data = cafe_df[cafe_df['업태구분명'] == category]
 
     # 데이터 프레임에 있는 모든 레스토랑과 사용자 간의 코사인 유사도 계산
     cosine_similarities = cosine_similarity(filtered_data.drop(
         ['소재지전체주소', '사업장명', '업태구분명', 'review', 'review_cleaned', 'total_sentiment', 'latitude', 'longitude',
-         'keyword_sentiment', 'price', 'menu_prices', 'mean_price', 'max_price'], axis=1), user_df)
+         'keyword_sentiment', 'price', 'menu_prices', 'mean_price'], axis=1), user_df)
     similarities_df = pd.DataFrame(cosine_similarities, columns=['similarity'], index=filtered_data.index)
 
     # 사용자 위치와 각 음식점 사이의 거리 계산
@@ -88,10 +101,28 @@ def recommend_cafe(user_preferences, category,user_location, budget, n_recommend
 
     return recommendations
 
-def recommend_theme(user_location, n_recommendations=5):
+def recommend_theme(user_location, theme_budget, n_recommendations=5):
+    # '정보 없음' 값을 NaN으로 대체 및 타입 변환
+    if 'max_price' in theme_df.columns:
+        theme_df['max_price'] = theme_df['max_price'].replace('정보 없음', np.nan)
+        theme_df['max_price'] = pd.to_numeric(theme_df['max_price'], errors='coerce')
+
+    if 'mean_price' in theme_df.columns:
+        theme_df['mean_price'] = theme_df['mean_price'].replace('정보 없음', np.nan)
+        theme_df['mean_price'] = pd.to_numeric(theme_df['mean_price'], errors='coerce')
 
     # 친절도가 2.3 초과인 데이터만 필터링
-    filtered_theme_df = theme_df[theme_df['친절도'] > 2.3] 
+    filtered_theme_df = theme_df[theme_df['친절도'] > 2.3]
+
+    if theme_budget:  # 예산이 설정되었을 때
+        if 'max_price' in theme_df.columns:
+            filtered_theme_df = theme_df[(theme_df['max_price'] <= theme_budget)]
+        elif 'mean_price' in theme_df.columns:
+            filtered_theme_df = theme_df[(theme_df['mean_price'] <= theme_budget)]
+        else:
+            filtered_theme_df = theme_df[theme_df['친절도'] > 2.3]
+    else:  # 예산이 설정되지 않았을 때
+        filtered_theme_df = theme_df[theme_df['친절도'] > 2.3]
 
     # 사용자 위치와 각 음식점 사이의 거리 계산
     distances = np.array([
@@ -157,42 +188,42 @@ def recommend_random_places(df, n_recommendations, sentiment_column1, sentiment_
     return recommendations
 
 # 좌표기준
-def recommend_optimal(user_location, n_recommendations=5):
-    # 사용자 위치와 각 음식점 사이의 거리 계산 (하버사인 공식 사용)
-    distances = []
-    for index, row in df.iterrows():
-        distance = calculate_distance(
-            user_location[0], user_location[1], row['latitude'], row['longitude']
-        )
-        distances.append(distance)
+# def recommend_optimal(user_location, n_recommendations=5):
+#     # 사용자 위치와 각 음식점 사이의 거리 계산 (하버사인 공식 사용)
+#     distances = []
+#     for index, row in df.iterrows():
+#         distance = calculate_distance(
+#             user_location[0], user_location[1], row['latitude'], row['longitude']
+#         )
+#         distances.append(distance)
+#
+#     # 거리를 역수로 변환하여 가까운 곳에 더 높은 값을 주기
+#     distance_scores = 1 / (1 + np.array(distances))
+#
+#     # 거리 점수를 기반으로 음식점을 추천하는 코드와 동일한 방식으로 추천 계산
+#     combined_scores = distance_scores
+#     recommendations = df.assign(score=combined_scores).sort_values(by='score', ascending=False)
+#     recommendations = recommendations.drop(columns=['review', 'review_cleaned', 'keyword_sentiment', 'score']).head(n_recommendations)
+#
+#     return recommendations
 
-    # 거리를 역수로 변환하여 가까운 곳에 더 높은 값을 주기
-    distance_scores = 1 / (1 + np.array(distances))
-
-    # 거리 점수를 기반으로 음식점을 추천하는 코드와 동일한 방식으로 추천 계산
-    combined_scores = distance_scores
-    recommendations = df.assign(score=combined_scores).sort_values(by='score', ascending=False)
-    recommendations = recommendations.drop(columns=['review', 'review_cleaned', 'keyword_sentiment', 'score']).head(n_recommendations)
-
-    return recommendations
-
-def recommend_optimal_cafe(user_location, n_recommendations=5):
-    distances = []
-    for index, row in cafe_df.iterrows():
-        distance = calculate_distance(
-            user_location[0], user_location[1], row['latitude'], row['longitude']
-        )
-        distances.append(distance)
-
-    # 거리를 역수로 변환하여 가까운 곳에 더 높은 값을 주기
-    distance_scores = 1 / (1 + np.array(distances))
-
-    # 거리 점수를 기반으로 음식점을 추천하는 코드와 동일한 방식으로 추천 계산
-    combined_scores = distance_scores
-    recommendations = cafe_df.assign(score=combined_scores).sort_values(by='score', ascending=False)
-    recommendations = recommendations.drop(columns=['review', 'review_cleaned', 'keyword_sentiment', 'score']).head(n_recommendations)
-
-    return recommendations
+# def recommend_optimal_cafe(user_location, n_recommendations=5):
+#     distances = []
+#     for index, row in cafe_df.iterrows():
+#         distance = calculate_distance(
+#             user_location[0], user_location[1], row['latitude'], row['longitude']
+#         )
+#         distances.append(distance)
+#
+#     # 거리를 역수로 변환하여 가까운 곳에 더 높은 값을 주기
+#     distance_scores = 1 / (1 + np.array(distances))
+#
+#     # 거리 점수를 기반으로 음식점을 추천하는 코드와 동일한 방식으로 추천 계산
+#     combined_scores = distance_scores
+#     recommendations = cafe_df.assign(score=combined_scores).sort_values(by='score', ascending=False)
+#     recommendations = recommendations.drop(columns=['review', 'review_cleaned', 'keyword_sentiment', 'score']).head(n_recommendations)
+#
+#     return recommendations
 
 def recommend_optimal_movie(user_location, n_recommendations=5):
 
