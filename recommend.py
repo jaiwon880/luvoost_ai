@@ -51,12 +51,15 @@ def recommend_restaurants(user_preferences, category, user_location, budget, n_r
 
     return recommendations
 
-def recommend_cafe(user_preferences, category,user_location, n_recommendations=5):
+def recommend_cafe(user_preferences, category,user_location, budget, n_recommendations=5):
     # 사용자 선호도를 데이터 프레임에 추가
     user_df = pd.DataFrame(user_preferences, index=['user'])
 
     # 사용자가 선택한 카테고리의 레스토랑만 필터링
-    filtered_data = df[df['업태구분명'] == category]
+    if budget:  # 예산이 설정되었을 때
+        filtered_data = df[(df['업태구분명'] == category) & (df['max_price'] <= budget)]
+    else:  # 예산이 설정되지 않았을 때
+        filtered_data = df[df['업태구분명'] == category]
 
     # 데이터 프레임에 있는 모든 레스토랑과 사용자 간의 코사인 유사도 계산
     cosine_similarities = cosine_similarity(filtered_data.drop(
@@ -138,7 +141,7 @@ def recommend_random_places(df, n_recommendations, sentiment_column1, sentiment_
     recommended_places = valid_places.iloc[recommended_indices]
 
     # 사용자와 가장 유사한 n개의 레스토랑 반환 전, 원치 않는 컬럼 제거
-    recommendations = recommended_places.drop(columns=['review', 'review_cleaned', 'keyword_sentiment', 'price']).head(
+    recommendations = recommended_places.drop(columns=['review', 'review_cleaned', 'keyword_sentiment', 'menu_prices']).head(
         n_recommendations)
     return recommendations
 

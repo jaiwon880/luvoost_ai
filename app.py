@@ -28,11 +28,11 @@ theme_df = pd.read_csv('./테마.csv', encoding='utf-8')
 processed_data = []  # 리스트로 초기화
 processed_data2 = []  # 리스트로 초기화
 
-@app.route("/api/v2")
+@app.route("/api/v1")
 def hello():
     return "flask test!"
 
-@app.route('/api/v2/predict', methods=['POST'])
+@app.route('/api/v1/predict', methods=['POST'])
 def predict():
     # 1. 클라이언트로부터 데이터 추출
     data = request.json  # 클라이언트로부터 받은 JSON 데이터를 추출
@@ -64,35 +64,34 @@ def predict():
 
     for location in results_data:
         total_expected_cost = 0  # 예상 소비 금액을 저장할 변수 초기화
+        total_expected_cost += location['mean_price']
         if budget:  # budget이 None이 아닐 경우만 차감
-            total_expected_cost += location['mean_price']
             budget -= location['mean_price'] # 예산 비용 차감
 
         cafe_latitude = location['latitude']
         cafe_longitude = location['longitude']
 
         # 카페 추천 함수 호출
-        cafe_results = recommend_cafe(user_preferences, "카페", (cafe_latitude, cafe_longitude), n_recommendations=1)
+        cafe_results = recommend_cafe(user_preferences, "카페", (cafe_latitude, cafe_longitude), budget, n_recommendations=1)
         cafe_results_json = cafe_results.to_json(orient='records')
-
+        total_expected_cost += cafe_results['mean_price'].iloc[0]
         if budget:  # budget이 None이 아닐 경우만 차감
-            total_expected_cost += cafe_results['mean_price'].iloc[0]
             budget -= cafe_results['mean_price'].iloc[0]
 
         #테마
         theme_results = recommend_theme((cafe_results['latitude'].iloc[0], cafe_results['longitude'].iloc[0]), n_recommendations=3)
         theme_results_json = theme_results.to_json(orient='records')
+        total_expected_cost += float(theme_results['mean_price'].iloc[0])
 
         if budget:  # budget이 None이 아닐 경우만 차감
-            total_expected_cost += float(theme_results['mean_price'].iloc[0])
             budget -= float(theme_results['mean_price'].iloc[0])
 
         # 영화관 추천 함수 호출
         movie_results = recommend_optimal_movie((theme_results['latitude'].iloc[0], theme_results['longitude'].iloc[0]), n_recommendations=1)
         movie_results_json = movie_results.to_json(orient='records')
+        total_expected_cost += movie_results['mean_price'].iloc[0]
 
         if budget:  # budget이 None이 아닐 경우만 차감
-            total_expected_cost += movie_results['mean_price'].iloc[0]
             budget -= movie_results['mean_price'].iloc[0]
 
         # 영화관 좌표를 사용하여 공원 추천 함수 호출
@@ -130,7 +129,7 @@ def predict():
     # 5. 결과 응답 반환
     return Response(response=json.dumps(recommendations), status=200, mimetype="application/json")
 
-@app.route('/api/v2/optimal', methods=['GET', 'POST'])
+@app.route('/api/v1/optimal', methods=['GET', 'POST'])
 def predict_optimal():
     # 1. 클라이언트로부터 데이터 추출
     data = request.json  # 데이터가 리스트의 첫 번째 요소로 전달됨
@@ -169,7 +168,7 @@ def predict_optimal():
     
     return jsonify(result)
 
-@app.route('/api/v2/random', methods=['GET', 'POST'])
+@app.route('/api/v1/random', methods=['GET', 'POST'])
 def predict_random():
     data = request.json
     selected_region = str(data['selected_region'])  # 클라이언트가 선택한 지역 받아오기
@@ -223,7 +222,7 @@ def predict_random():
 
     # 추천 결과
     recommendation_result = {
-        "랜덤 코스 추천": json.loads(restaurants_results_json) + json.loads(cafes_results_json) + json.loads(movie_results_json)
+        "random": json.loads(restaurants_results_json) + json.loads(cafes_results_json) + json.loads(movie_results_json)
           + json.loads(theme_results_json) + json.loads(park_results_json)
     }
 
