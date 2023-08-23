@@ -12,9 +12,11 @@ spec:
       labels:
         app: flask
     spec:
+      nodeSelector: # nodeSelector 추가
+        kubernetes.io/hostname: flask # 원하는 노드 이름 지정
       containers:
         - name: flask-pod
-          image: 119.197.27.55:5000/flask:latest
+          image: 119.197.27.55:5000/flask@sha256:da24229fa960d0c7a7b95fbe586a371bc37887fbc6924ff624f64885828f46b4
           ports:
             - containerPort: 7777
 ---
@@ -27,6 +29,6 @@ spec:
   selector:
     app: flask
   ports:
-    - port: 80
+    - port: 443
       targetPort: 7777
       nodePort: 32000

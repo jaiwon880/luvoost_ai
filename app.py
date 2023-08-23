@@ -28,11 +28,11 @@ theme_df = pd.read_csv('./테마.csv', encoding='utf-8')
 processed_data = []  # 리스트로 초기화
 processed_data2 = []  # 리스트로 초기화
 
-@app.route("/")
+@app.route("/api/v2")
 def hello():
-    return "flask test page!!"
+    return "flask test!"
 
-@app.route('/api/v1/predict', methods=['POST'])
+@app.route('/api/v2/predict', methods=['POST'])
 def predict():
     # 1. 클라이언트로부터 데이터 추출
     data = request.json  # 클라이언트로부터 받은 JSON 데이터를 추출
@@ -130,7 +130,7 @@ def predict():
     # 5. 결과 응답 반환
     return Response(response=json.dumps(recommendations), status=200, mimetype="application/json")
 
-@app.route('/api/v1/optimal', methods=['GET', 'POST'])
+@app.route('/api/v2/optimal', methods=['GET', 'POST'])
 def predict_optimal():
     # 1. 클라이언트로부터 데이터 추출
     data = request.json  # 데이터가 리스트의 첫 번째 요소로 전달됨
@@ -169,7 +169,7 @@ def predict_optimal():
     
     return jsonify(result)
 
-@app.route('/api/v1/random', methods=['GET', 'POST'])
+@app.route('/api/v2/random', methods=['GET', 'POST'])
 def predict_random():
     data = request.json
     selected_region = str(data['selected_region'])  # 클라이언트가 선택한 지역 받아오기
