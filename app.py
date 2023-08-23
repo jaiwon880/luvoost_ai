@@ -9,7 +9,7 @@ from flask import Response
 # from reviewline import preprocess_review_data
 import random
 import numpy as np
-from recommend import recommend_restaurants, recommend_optimal, recommend_optimal_cafe, recommend_optimal_movie
+from recommend import recommend_restaurants, recommend_optimal_movie
 from recommend import recommend_cafe, recommend_optimal_park, recommend_theme, recommend_random_places
 
 
@@ -42,7 +42,7 @@ def predict():
     latitude = float(data['user_latitude'])
     longitude = float(data['user_longitude'])
     preferred_food = data['food']
-    budget = int(data['budget']) if 'budget' in data else None  # 예산이 설정되지 않았을 경우 None
+    budget = data.get('budget', None)  # 클라이언트가 보낸 budget 값을 받아오기. 만약 budget 값이 없으면 None으로 설정합니다.
 
     # 2. 사용자의 음식점 선호도 추출
     user_preferences = {
@@ -57,8 +57,18 @@ def predict():
     # 3. 음식점 및 카페 추천 및 결과 구성
     recommendations = []
 
+    # 예산이 설정되었을 때
+    if budget is not None:
+        restaurant_budget = budget * 0.4
+        theme_budget = budget * 0.4
+        cafe_budget = budget * 0.2
+    else:
+        restaurant_budget = None
+        theme_budget = None
+        cafe_budget = None
+
     # 음식점 추천 결과를 받아서 세부 추천 수행
-    results = recommend_restaurants(user_preferences, preferred_food, (latitude, longitude), budget, n_recommendations=3)
+    results = recommend_restaurants(user_preferences, preferred_food, (latitude, longitude), restaurant_budget, n_recommendations=3)
     results_json = results.to_json(orient='records')
     results_data = json.loads(results_json)
 
@@ -66,20 +76,20 @@ def predict():
         total_expected_cost = 0  # 예상 소비 금액을 저장할 변수 초기화
         total_expected_cost += location['mean_price']
         if budget:  # budget이 None이 아닐 경우만 차감
-            budget -= location['mean_price'] # 예산 비용 차감
+            budget -= location['mean_price']  # 예산 비용 차감
 
         cafe_latitude = location['latitude']
         cafe_longitude = location['longitude']
 
         # 카페 추천 함수 호출
-        cafe_results = recommend_cafe(user_preferences, "카페", (cafe_latitude, cafe_longitude), budget, n_recommendations=1)
+        cafe_results = recommend_cafe(user_preferences, "카페", (cafe_latitude, cafe_longitude), cafe_budget, n_recommendations=1)
         cafe_results_json = cafe_results.to_json(orient='records')
         total_expected_cost += cafe_results['mean_price'].iloc[0]
         if budget:  # budget이 None이 아닐 경우만 차감
             budget -= cafe_results['mean_price'].iloc[0]
 
         #테마
-        theme_results = recommend_theme((cafe_results['latitude'].iloc[0], cafe_results['longitude'].iloc[0]), n_recommendations=3)
+        theme_results = recommend_theme((cafe_results['latitude'].iloc[0], cafe_results['longitude'].iloc[0]), theme_budget, n_recommendations=3)
         theme_results_json = theme_results.to_json(orient='records')
         total_expected_cost += float(theme_results['mean_price'].iloc[0])
 
@@ -121,52 +131,7 @@ def predict():
             'expected_total_cost': total_expected_cost  # 예상 소비 금액 추가
         }     
         recommendations.append(recommendation)
-
-    # 4. 최종 결과 JSON 구성
-    # result = {
-    #     'recommendations': recommendations
-    # }
-    # 5. 결과 응답 반환
     return Response(response=json.dumps(recommendations), status=200, mimetype="application/json")
-
-@app.route('/api/v1/optimal', methods=['GET', 'POST'])
-def predict_optimal():
-    # 1. 클라이언트로부터 데이터 추출
-    data = request.json  # 데이터가 리스트의 첫 번째 요소로 전달됨
-    print(data)
-
-    latitude = float(data['user_latitude'])
-    longitude = float(data['user_longitude'])
-
-    # 음식점 추천 함수 호출
-    results = recommend_optimal((latitude, longitude), n_recommendations=1)
-    results_json = results.to_json(orient='records')
-
-    # 선택된 음식점의 위치 정보 추출
-    recommended_location = json.loads(results_json)[0]
-    cafe_latitude = recommended_location['latitude']
-    cafe_longitude = recommended_location['longitude']
-    
-    # 카페 추천 함수 호출
-    cafe_results = recommend_optimal_cafe((cafe_latitude, cafe_longitude), n_recommendations=1)
-    cafe_results_json = cafe_results.to_json(orient='records')
-
-    #영화관 추천
-    movie_location = json.loads(cafe_results_json)[0]
-    movie_latitude = movie_location['latitude']
-    movie_longitude = movie_location['longitude']
-
-    movie_results = recommend_optimal_movie((movie_latitude, movie_longitude), n_recommendations=1)
-    movie_results_json = movie_results.to_json(orient='records')
-    
-    # 결과 데이터 생성 및 반환
-    result = {
-        'latitude': str(latitude),
-        'longitude': str(longitude),
-        'combined': json.loads(results_json) + json.loads(cafe_results_json) + json.loads(movie_results_json)
-    }
-    
-    return jsonify(result)
 
 @app.route('/api/v1/random', methods=['GET', 'POST'])
 def predict_random():
@@ -175,16 +140,15 @@ def predict_random():
     budget = data.get('budget', None)  # 클라이언트가 보낸 budget 값을 받아오기. 만약 budget 값이 없으면 None으로 설정합니다.
 
     # 예산이 설정되었을 때
-    if budget:
+    if budget is not None:
         restaurant_budget = budget * 0.4
         theme_budget = budget * 0.4
         cafe_budget = budget * 0.2
-    # 예산이 설정되지 않았을 때
     else:
         restaurant_budget = None
         theme_budget = None
         cafe_budget = None
-    
+
     # 음식점 추천 (맛 2.8 이상, 분위기 2.5 이상, 선택한 지역 포함)
     num_restaurant_recommendations = 2
     recommended_restaurants = recommend_random_places(df,
@@ -240,6 +204,47 @@ def predict_random():
     }
 
     return jsonify(recommendation_result)
+
+
+# @app.route('/api/v1/optimal', methods=['GET', 'POST'])
+# def predict_optimal():
+#     # 1. 클라이언트로부터 데이터 추출
+#     data = request.json  # 데이터가 리스트의 첫 번째 요소로 전달됨
+#     print(data)
+#
+#     latitude = float(data['user_latitude'])
+#     longitude = float(data['user_longitude'])
+#
+#     # 음식점 추천 함수 호출
+#     results = recommend_optimal((latitude, longitude), n_recommendations=1)
+#     results_json = results.to_json(orient='records')
+#
+#     # 선택된 음식점의 위치 정보 추출
+#     recommended_location = json.loads(results_json)[0]
+#     cafe_latitude = recommended_location['latitude']
+#     cafe_longitude = recommended_location['longitude']
+#
+#     # 카페 추천 함수 호출
+#     cafe_results = recommend_optimal_cafe((cafe_latitude, cafe_longitude), n_recommendations=1)
+#     cafe_results_json = cafe_results.to_json(orient='records')
+#
+#     # 영화관 추천
+#     movie_location = json.loads(cafe_results_json)[0]
+#     movie_latitude = movie_location['latitude']
+#     movie_longitude = movie_location['longitude']
+#
+#     movie_results = recommend_optimal_movie((movie_latitude, movie_longitude), n_recommendations=1)
+#     movie_results_json = movie_results.to_json(orient='records')
+#
+#     # 결과 데이터 생성 및 반환
+#     result = {
+#         'latitude': str(latitude),
+#         'longitude': str(longitude),
+#         'combined': json.loads(results_json) + json.loads(cafe_results_json) + json.loads(movie_results_json)
+#     }
+#
+#     return jsonify(result)
+
 
 if __name__ == '__main__':
     app.run(debug=False)
