@@ -75,7 +75,7 @@ def predict():
     for location in results_data:
         total_expected_cost = 0  # 예상 소비 금액을 저장할 변수 초기화
         total_expected_cost += location['mean_price']
-        print(total_expected_cost)
+        # print(total_expected_cost)
         if budget:  # budget이 None이 아닐 경우만 차감
             budget -= location['mean_price']  # 예산 비용 차감
 
@@ -86,8 +86,8 @@ def predict():
         cafe_results = recommend_cafe(user_preferences, "카페", (cafe_latitude, cafe_longitude), cafe_budget, n_recommendations=1)
         cafe_results_json = cafe_results.to_json(orient='records')
         total_expected_cost += cafe_results['mean_price'].iloc[0]
-        print("==========================카페")
-        print(total_expected_cost)
+        # print("==========================카페")
+        # print(total_expected_cost)
         if budget:  # budget이 None이 아닐 경우만 차감
             budget -= cafe_results['mean_price'].iloc[0]
 
@@ -95,8 +95,8 @@ def predict():
         theme_results = recommend_theme((cafe_results['latitude'].iloc[0], cafe_results['longitude'].iloc[0]), theme_budget, n_recommendations=3)
         theme_results_json = theme_results.to_json(orient='records')
         total_expected_cost += int(theme_results['mean_price'].iloc[0])
-        print("==========================테마")
-        print(total_expected_cost)
+        # print("==========================테마")
+        # print(total_expected_cost)
         if budget:  # budget이 None이 아닐 경우만 차감
             budget -= int(theme_results['mean_price'].iloc[0])
 
@@ -104,8 +104,8 @@ def predict():
         movie_results = recommend_optimal_movie((theme_results['latitude'].iloc[0], theme_results['longitude'].iloc[0]), n_recommendations=1)
         movie_results_json = movie_results.to_json(orient='records')
         total_expected_cost += movie_results['mean_price'].iloc[0]
-        print("==========================영화")
-        print(total_expected_cost)
+        # print("==========================영화")
+        # print(total_expected_cost)
         if budget:  # budget이 None이 아닐 경우만 차감
             budget -= movie_results['mean_price'].iloc[0]
 
