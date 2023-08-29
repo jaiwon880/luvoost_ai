@@ -24,10 +24,6 @@ movie_df = pd.read_csv('./영화관.csv', encoding='utf-8')
 park_df = pd.read_csv('./산책.csv', encoding='utf-8')
 theme_df = pd.read_csv('./테마.csv', encoding='utf-8')
 
-# 이미 처리한 데이터를 기록할 세트
-processed_data = []  # 리스트로 초기화
-processed_data2 = []  # 리스트로 초기화
-
 @app.route("/api/v1")
 def hello():
     return "flask test!"
@@ -56,6 +52,9 @@ def predict():
 
     # 3. 음식점 및 카페 추천 및 결과 구성
     recommendations = []
+    # 이미 처리한 데이터를 기록할 세트
+    processed_data = []  # 리스트로 초기화
+    processed_data2 = []  # 리스트로 초기화
 
     # 예산이 설정되었을 때
     if budget is not None:
@@ -112,13 +111,13 @@ def predict():
         theme_results = json.loads(theme_results_json)
         park_results = json.loads(park_results_json)
 
-            # 첫 번째 값을 출력
+        # 첫 번째 값을 출력
         for theme in theme_results:
             if theme not in processed_data:
                 processed_data.append(theme)
                 break
 
-                    # 첫 번째 값을 출력
+        # 첫 번째 값을 출력
         for park in park_results:
             if park not in processed_data2:
                 processed_data2.append(park)
