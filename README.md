@@ -1,6 +1,6 @@
 <div align=center>
-# Luvoost - 서울 데이트 코스 걱정 끝 !
-### 데이트 코스 추천 + 공유 캘린더 + 커플 커뮤니티
+<h1>Luvoost - 서울 데이트 코스 걱정 끝 !</h1>
+<h3>데이트 코스 추천 + 공유 캘린더 + 커플 커뮤니티</h3>
 <br>
 <div align=left>
 
