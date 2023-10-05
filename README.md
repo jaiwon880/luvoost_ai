@@ -10,6 +10,7 @@
 - 🙆‍♂️ [ 배포 페이지 ](https://luvoost.co.kr)
 - 🎥 [ 데모 영상 ](https://youtu.be/-wGfEa7RgBE?si=HfNpcBiZHDzR82BU)
 - 👩‍💻 [ 소개 노션 페이지 ](https://jjae0510.notion.site/Luvoost-015895a1eb984a3490c73b00ffbd3a0f?pvs=4)
+
 - GitHub Repositories:
   - [Front-End](https://github.com/jaiwon880/luvoost_frontend)
   - [Back-End](https://github.com/jaiwon880/luvoost_backend)
